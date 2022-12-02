@@ -4,22 +4,47 @@ echo "Hello Bash!"
 
 ## 변수 설정
 
-# SERVICE_BRANCH=m3dev
 PROJECT_PATH=/home/ubuntu/myapp/infra-subway-deploy
 SERVICE_PATH=$PROJECT_PATH/build/libs
 LOG_PATH=$PROJECT_PATH/logs
 SERVICE_NAME=subway-0.0.1-SNAPSHOT.jar
-# STAGE=test # test | local | prod
 LOG_FILE_NAME=mylog.log
 PARAMETER_COUNT=2
+PROFILES=("test" "prod" "local")
 
 SERVICE_BRANCH=$1
 STAGE=$2
 
 function check_parameter_validation() {
+        # 파라미터 개수 검증
         if [[ $1 -ne $PARAMETER_COUNT ]]
         then
                 echo "Need 2 Parameter: Branch, Profile"
+                exit 1
+        fi
+
+        # fetch 명령어 질의의 결과 성공 여부로 브랜치 파라미터의 유효성을 판단
+        cd $PROJECT_PATH
+        git fetch origin $2 > /dev/null 2>&1
+        if [[ $? -ne 0 ]]
+        then
+                echo "Branch is wrong"
+                exit 1
+        fi
+
+        # 초기 선언 한 PROFILES 에 포함되어 있는지 여부로 프로필 파라미터의 유효성을 판단
+        IS_COLLECT=0
+        for profile in ${PROFILES[@]}
+        do
+                if [[ $profile == $STAGE ]]
+                then
+                        IS_COLLECT=1
+                        break
+                fi
+        done
+        if [[ $IS_COLLECT -eq 0 ]]
+        then
+                echo "Profile is wrong"
                 exit 1
         fi
 }
@@ -71,7 +96,7 @@ echo -e "    $now"
 echo -e "======================================="
 
 ## check validation
-check_parameter_validation $#
+check_parameter_validation $# $SERVICE_BRANCH $STAGE
 
 ## 저장소 pull
 echo ""
